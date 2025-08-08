@@ -5,6 +5,7 @@ import json
 import os
 
 intents = discord.Intents.default()
+intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 TOKEN = config("TOKEN")
@@ -28,6 +29,35 @@ class preset(app_commands.Group):
     @app_commands.command(name="generate", description="Replaces the name of a preset surrounded in brackets with the preset correlated to said name")
     @app_commands.describe(text="The text you want to add presets into")
     async def generate(self, interaction: discord.Interaction, text: str) -> str:
+        localPresets: dict = presets[str(interaction.guild.id)]
+        localConfigs: dict = configs[str(interaction.guild.id)]
+        response = ""
+        for substr in text.split(sep=localConfigs["brackets"]):
+            if substr.lower() in localPresets.keys():
+                substr = localPresets[substr.lower()]
+            response += substr
+        await interaction.response.send_message(response)
+
+    @app_commands.command(name="linkgenerate", description="This does the same as /preset generate, except it uses a message link")
+    @app_commands.describe(link="The message where you wanna use presets")
+    async def linkgenerate(self, interaction: discord.Interaction, link: str) -> str:
+
+        guildId, channelId, messageId = link.split(sep="/")[-3:]
+        if guildId == str(interaction.guild.id) and int(channelId) in [channel.id for channel in interaction.guild.channels]:
+            try:
+                channel = await client.fetch_channel(channelId)
+                message = await channel.fetch_message(messageId)
+                text = message.content
+            except discord.errors.NotFound:
+                await interaction.response.send_message("ERROR: The message couldn't be found, make sure it still exists", ephemeral=True)
+                return
+            except discord.errors.Forbidden:
+                await interaction.response.send_message("ERROR: This bot does not have the permissions to access this message", ephemeral=True)
+                return
+        else:
+            await interaction.response.send_message("ERROR: The link was invalid, from another server or the bot doesn't have the permissions to access the channel", ephemeral=True)
+            return
+
         localPresets: dict = presets[str(interaction.guild.id)]
         localConfigs: dict = configs[str(interaction.guild.id)]
         response = ""
