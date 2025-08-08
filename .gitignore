@@ -1,2 +1,5 @@
 .env
 presets.json
+presets copy.json
+configs.json
+configs copy.json
