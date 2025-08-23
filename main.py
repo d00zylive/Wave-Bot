@@ -77,19 +77,51 @@ class preset(app_commands.Group):
     async def setbracket(self, interaction: discord.Interaction, bracket: str):
         configs[str(interaction.guild.id)]["brackets"] = bracket
         DumpJson("configs.json", configs)
+
         await interaction.response.send_message(f"Brackets have been set to `{bracket}`")
 
     @app_commands.command(name="add", description="Adds the given preset with given name to presets.")
-    @app_commands.describe(name="The name for the preset that will be used between brackets", preset="The replacement text/The string the name in brackets will be replaced with")
+    @app_commands.describe(name="The name for the preset that will be used between brackets", preset="The replacement text/string the name in brackets will be replaced with")
     @app_commands.checks.has_permissions(administrator=True)
     async def add(self, interaction: discord.Interaction, name: str, preset: str):
         if name.lower() not in  presets[str(interaction.guild.id)].keys():
             presets[str(interaction.guild.id)][name.lower()] = preset
+
             DumpJson("presets.json", presets)
+
             brackets = configs[str(interaction.guild.id)]["brackets"]
             await interaction.response.send_message(f"Added a preset, {brackets}{name.lower()}{brackets} will now be replaced by {preset}")
+
         else:
             await interaction.response.send_message(f"ERROR: This preset already exists. Please use /preset edit to edit the preset, instead.")
+
+    @app_commands.command(name="edit", description="Edits the preset with given name.")
+    @app_commands.describe(name="The name of the preset that you want to edit", preset="The new replacement text/string the name in brackets will be replaced with", new_name="The new name for the preset")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def edit(self, interaction: discord.Interaction, name: str, preset: str = None, new_name: str = None):
+        newName = new_name
+
+        if name.lower() in presets[str(interaction.guild.id)].keys():
+            if preset != None:
+                presets[str(interaction.guild.id)][name.lower()] = preset 
+
+            if newName != None:
+                presets[str(interaction.guild.id)][newName.lower()] = presets[str(interaction.guild.id)].pop(name.lower())
+
+            DumpJson("presets.json", presets)
+
+            brackets = configs[str(interaction.guild.id)]["brackets"]
+
+            if preset != None and newName != None:
+                await interaction.response.send_message(f"Edited the preset {name.lower()}. {brackets}{newName.lower()}{brackets} will now be replaced by {preset}")
+            elif preset == None and newName != None:
+                await interaction.response.send_message(f"Edited the preset {name.lower()}. {brackets}{newName.lower()}{brackets} will now be replaced by {presets[str(interaction.guild.id)][newName.lower()]}")
+            elif preset != None and newName == None:
+                await interaction.response.send_message(f"Edited the preset {name.lower()}. {brackets}{name.lower()}{brackets} will now be replaced by {preset}")
+            else:
+                await interaction.response.send_message("ERROR: No edits were given, please use one or both of the optional paramaters (`preset` or `new_name`)")
+        else:
+            await interaction.response.send_message("ERROR: This preset doesn't exist. Please use /preset add to add a new preset, instead.")
 
     
     
