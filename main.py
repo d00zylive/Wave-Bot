@@ -1,6 +1,6 @@
 import discord
 from discord import app_commands
-from decouple import config
+import decouple
 import json
 import os
 
@@ -8,7 +8,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-TOKEN = config("TOKEN")
+TOKEN = decouple.config("TOKEN")
 
 def LoadJson(path: str) -> dict:
     if os.path.exists(f"{os.getcwd()}\\{path}"):
@@ -19,7 +19,7 @@ def LoadJson(path: str) -> dict:
             json.dump({}, f, indent=4)
             return {}
         
-def DumpJson(path: str, dict: dict):
+def DumpJson(path: str, dict: dict) -> None:
     with open(f"{os.getcwd()}\\{path}", "w", encoding="utf8") as f:
         json.dump(dict, f, indent=4)
 
@@ -72,12 +72,27 @@ class preset(app_commands.Group):
         await interaction.response.send_message(response)
     
     @app_commands.command(name="setbracket", description="Sets the bracket to the given string. The bracket \"++\" with preset star would look like \"++star++\"")
-    @app_commands.describe(bracket="What you want the bracket to do")
+    @app_commands.describe(bracket="What you want the bracket to be")
     @app_commands.checks.has_permissions(administrator=True)
     async def setbracket(self, interaction: discord.Interaction, bracket: str):
         configs[str(interaction.guild.id)]["brackets"] = bracket
         DumpJson("configs.json", configs)
         await interaction.response.send_message(f"Brackets have been set to `{bracket}`")
+
+    @app_commands.command(name="add", description="Adds the given preset with given name to presets.")
+    @app_commands.describe(name="The name for the preset that will be used between brackets", preset="The replacement text/The string the name in brackets will be replaced with")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def add(self, interaction: discord.Interaction, name: str, preset: str):
+        if name.lower() not in  presets[str(interaction.guild.id)].keys():
+            presets[str(interaction.guild.id)][name.lower()] = preset
+            DumpJson("presets.json", presets)
+            brackets = configs[str(interaction.guild.id)]["brackets"]
+            await interaction.response.send_message(f"Added a preset, {brackets}{name.lower()}{brackets} will now be replaced by {preset}")
+        else:
+            await interaction.response.send_message(f"ERROR: This preset already exists. Please use /preset edit to edit the preset, instead.")
+
+    
+    
 tree.add_command(preset())
 
 @client.event
