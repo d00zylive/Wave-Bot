@@ -11,16 +11,16 @@ tree = app_commands.CommandTree(client)
 TOKEN = decouple.config("TOKEN")
 
 def LoadJson(path: str) -> dict:
-    if os.path.exists(f"{os.getcwd()}\\{path}"):
-        with open(f"{os.getcwd()}\\{path}", "r", encoding="utf8") as f:
+    if os.path.exists(os.path.join(os.getcwd(), path)):
+        with open(os.path.join(os.getcwd(), path), "r", encoding="utf8") as f:
             return json.load(f)
     else:
-        with open(f"{os.getcwd()}\\{path}", "x+") as f:
+        with open(os.path.join(os.getcwd(), path), "x+") as f:
             json.dump({}, f, indent=4)
             return {}
         
 def DumpJson(path: str, dict: dict) -> None:
-    with open(f"{os.getcwd()}\\{path}", "w", encoding="utf8") as f:
+    with open(os.path.join(os.getcwd(), path), "w", encoding="utf8") as f:
         json.dump(dict, f, indent=4)
 
 presets = LoadJson("presets.json")
@@ -167,6 +167,17 @@ class preset(app_commands.Group):
     
     
 tree.add_command(preset())
+
+@client.event
+async def on_guild_join(guild: discord.Guild):
+    configs[str(guild.id)] = {
+        "brackets": "--"
+    }
+
+    presets[str(guild.id)] = {}
+
+    DumpJson("configs.json", configs)
+    DumpJson("presets.json", presets)
 
 @client.event
 async def on_ready():
