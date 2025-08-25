@@ -122,6 +122,38 @@ class preset(app_commands.Group):
                 await interaction.response.send_message("ERROR: No edits were given, please use one or both of the optional paramaters (`preset` or `new_name`)")
         else:
             await interaction.response.send_message("ERROR: This preset doesn't exist. Please use /preset add to add a new preset, instead.")
+    
+    class removeConfirmation(discord.ui.View):
+        def __init__(self, user: discord.User, name: str):
+            super().__init__(timeout=60)
+            self.user = user
+            self.name = name
+
+        @discord.ui.button(label="Confirm removal of preset", style=discord.ButtonStyle.danger, emoji="✖")
+        async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+            presets[str(interaction.guild.id)].pop(self.name.lower())
+            DumpJson("presets.json", presets)
+            await interaction.response.edit_message(content=f"Preset {self.name.lower()} was removed", view=None)
+
+        async def interaction_check(self, interaction):
+            if interaction.user != self.user:
+                interaction.response.send_message("ERROR: Only the creator of this button is allowed to interact with it", ephemeral=True)
+                return False
+            elif interaction.user == self.user:
+                return True
+
+
+    @app_commands.command(name="remove", description="Removes the preset with given name.")
+    @app_commands.describe(name="The name of the preset that you want to remove")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def remove(self, interaction: discord.Interaction, name: str):
+
+        if name.lower() in presets[str(interaction.guild.id)].keys():
+            view = preset.removeConfirmation(user=interaction.user, name=name)
+            await interaction.response.send_message("Are you sure you want to remove this preset?", view=view)
+
+        else:
+            await interaction.response.send_message("ERROR: This preset doesn't exist.")
 
     
     
