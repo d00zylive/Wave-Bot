@@ -154,7 +154,16 @@ class preset(app_commands.Group):
 
         else:
             await interaction.response.send_message("ERROR: This preset doesn't exist.")
+    
+    @app_commands.command(name="list", description="Lists all presets.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def list(self, interaction: discord.Interaction):
+        response = "## Presets"
 
+        for preset in presets[str(interaction.guild.id)].keys():
+            response += f"\n*{preset}:* {presets[str(interaction.guild.id)][preset]}"
+
+        await interaction.response.send_message(response)
     
     
 tree.add_command(preset())
